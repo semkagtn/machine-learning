@@ -1,0 +1,16 @@
+# IDEA Files (eroshenkoam: You could use <directory> pattern instead of <directory>/*)
+.idea
+*.iml
+*.ipr
+
+# Eclude svn directoories
+.svn
+
+# Eclude target directories
+target
+
+# Eclude log file
+*.log
+*.classpath
+*.java.orig
+test.txt
