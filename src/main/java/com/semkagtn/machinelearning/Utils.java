@@ -1,6 +1,7 @@
 package com.semkagtn.machinelearning;
 
 import weka.core.Instances;
+import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
 import weka.core.converters.Loader;
 
@@ -12,11 +13,10 @@ import java.io.InputStream;
  */
 public class Utils {
 
-    public static Instances readCsvFile(String fileName) {
+    private static Instances readFile(String fileName, Loader loader) {
         Instances instances;
         try {
             InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
-            Loader loader = new CSVLoader();
             loader.setSource(inputStream);
 
             instances = loader.getDataSet();
@@ -25,6 +25,14 @@ public class Utils {
             throw new RuntimeException(e);
         }
         return instances;
+    }
+
+    public static Instances readCsvFile(String fileName) {
+        return readFile(fileName, new CSVLoader());
+    }
+
+    public static Instances readArffFile(String fileName) {
+        return readFile(fileName, new ArffLoader());
     }
 
     private Utils() {
