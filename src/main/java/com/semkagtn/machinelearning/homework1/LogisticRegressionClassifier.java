@@ -7,43 +7,41 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.Normalize;
-import weka.filters.unsupervised.attribute.Standardize;
+import weka.filters.unsupervised.attribute.NumericToNominal;
 
 import java.util.Random;
 
 /**
- * Created by semkagtn on 15.09.15.
+ * Created by semkagtn on 29.09.15.
  */
-public class LinearRegressionClassifier extends Classifier {
+public class LogisticRegressionClassifier extends Classifier {
 
     private double[] coefs;
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
         this.coefs = new double[data.numAttributes()];
-        gradientDescent(data);
+        gradientAscent(data);
     }
 
     @Override
     public double classifyInstance(Instance instance) throws Exception {
-        double result = 0.0;
-        for (int i = 0; i < coefs.length; i++) {
-            double iValue = i != instance.classIndex() ? instance.value(i) : 1;
-            result += coefs[i] * iValue;
+        if (logisticFunction(linearFunction(instance)) < 0.5) {
+            return 0.0;
         }
-        return result;
+        return 1.0;
     }
 
-    private static final double STEP = 0.0001;
-    private static final double PRECISION = 5;
-    private static final double REGULARIZATION_COEF = 5;
+    private static final double STEP = 0.001;
+    private static final double PRECISION = 0.01;
+    private static final double REGULARIZATION_COEF = 0.1;
 
-    private void gradientDescent(Instances instances) throws Exception {
+    private void gradientAscent(Instances instances) throws Exception {
         double[] newCoefs = new double[coefs.length];
         do {
             System.arraycopy(newCoefs, 0, coefs, 0, coefs.length);
             for (int i = 0; i < coefs.length; i++) {
-                newCoefs[i] = coefs[i] - STEP * derivative(i, instances);
+                newCoefs[i] = coefs[i] + STEP * derivative(i, instances);
             }
         } while (norm(newCoefs) > PRECISION);
         coefs = newCoefs;
@@ -62,24 +60,43 @@ public class LinearRegressionClassifier extends Classifier {
         for (int i = 0; i < instances.numInstances(); i++) {
             Instance instance = instances.instance(i);
             double kValue = k != instance.classIndex() ? instance.value(k) : 1;
-            result += (classifyInstance(instance) - instance.classValue()) * kValue
-                    + REGULARIZATION_COEF * kValue;
+            double y = instance.classValue();
+            double z = linearFunction(instance);
+            result += (y - logisticFunction(z)) * kValue + REGULARIZATION_COEF * kValue;
         }
-        return 2 * result;
+        return result;
+    }
+
+    private double linearFunction(Instance instance) {
+        double result = 0.0;
+        for (int i = 0; i < coefs.length; i++) {
+            double iValue = i != instance.classIndex() ? instance.value(i) : 1;
+            result += coefs[i] * iValue;
+        }
+        return result;
+    }
+
+    private static double logisticFunction(double z) {
+        return 1.0 / (1 + Math.exp(-z));
     }
 
 
-    private static final String FILE_NAME = "Linear_regression/prices.txt";
+    private static final String FILE_NAME = "Logistic_regression/chips-new.txt";
     private static final int FOLDS = 5;
 
     public static void main(String[] args) throws Exception {
         Instances instances = Utils.readCsvFile(FILE_NAME);
 
-        Filter filter = new Normalize();
+        NumericToNominal filter = new NumericToNominal();
+        filter.setOptions(new String[]{"-R", String.valueOf(instances.classIndex() + 1)});
         filter.setInputFormat(instances);
         instances = Filter.useFilter(instances, filter);
 
-        Classifier classifier = new LinearRegressionClassifier();
+        Filter normalize = new Normalize();
+        normalize.setInputFormat(instances);
+        instances = Filter.useFilter(instances, normalize);
+
+        Classifier classifier = new LogisticRegressionClassifier();
         classifier.buildClassifier(instances);
 
         Evaluation evaluation = new Evaluation(instances);
